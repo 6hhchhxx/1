@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>外贸合同智能审核助手</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.5.0/dist/axios.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 90vh;
+        }
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        /* 主内容区域布局 */
+        .main-content {
+            display: flex;
+            flex: 1;
+        }
+        
+        /* 侧边栏 */
+        .sidebar {
+            width: 300px;
+            background: #f8f9fa;
+            padding: 25px;
+            border-right: 1px solid #e9ecef;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .file-info {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+        }
+        
+        .file-info h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+        }
+        
+        .file-info h3:before {
+            content: "📄";
+            margin-right: 10px;
+        }
+        
+        .file-details {
+            list-style: none;
+        }
+        
+        .file-details li {
+            padding: 8px 0;
+            border-bottom: 1px solid #f1f1f1;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .file-details li:last-child {
+            border-bottom: none;
+        }
+        
+        .file-details .label {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        
+        .file-details .value {
+            font-weight: 500;
+            color: #2c3e50;
+        }
+        
+        .quick-actions {
+            margin-top: auto;
+        }
+        
+        .action-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            text-align: center;
+            color: #495057;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .action-btn:hover {
+            background: #f1f3f5;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .action-btn.primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+        }
+        
+        /* 内容区域 */
+        .content-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .upload-section {
+            background: white;
+            padding: 30px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .upload-container {
+            display: flex;
+            gap: 20px;
+            align-items: flex-end;
+        }
+        
+        .file-input-container {
+            flex: 1;
+        }
+        
+        .file-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            background: white;
+        }
+        
+        .language-select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            background: white;
+        }
+        
+        .analyze-btn {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: transform 0.2s;
+            white-space: nowrap;
+        }
+        
+        .analyze-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .analyze-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .file-status {
+            margin-top: 15px;
+            padding: 15px;
+            background: #e8f5e8;
+            border-radius: 8px;
+            border-left: 4px solid #27ae60;
+            display: flex;
+            align-items: center;
+        }
+        
+        .file-status:before {
+            content: "✓";
+            margin-right: 10px;
+            font-weight: bold;
+            color: #27ae60;
+        }
+        
+        .result-section {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+        
+        .summary {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-left: 5px solid #3498db;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* 简洁美观的 AI 分析结果样式 */
+        .ai-result {
+            background: white;
+            padding: 0;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            line-height: 1.6;
+            font-size: 14px;
+        }
+        
+        .risk-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #e74c3c;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+        }
+        
+        .risk-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .risk-card.medium {
+            border-left-color: #f39c12;
+        }
+        
+        .risk-card.low {
+            border-left-color: #27ae60;
+        }
+        
+        .risk-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .risk-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-size: 16px;
+        }
+        
+        .risk-icon.high {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .risk-icon.medium {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .risk-icon.low {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .risk-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin: 0;
+        }
+        
+        .risk-content {
+            color: #555;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .risk-point {
+            background: #fff5f5;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 8px 0;
+            border-left: 3px solid #e74c3c;
+        }
+        
+        .legal-basis {
+            background: #f0f8ff;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 8px 0;
+            border-left: 3px solid #3498db;
+        }
+        
+        .suggestion {
+            background: #f0fff4;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 8px 0;
+            border-left: 3px solid #27ae60;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin: 25px 0 15px 0;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #3498db;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #7f8c8d;
+            text-transform: uppercase;
+        }
+        
+        .analysis-meta {
+            display: flex;
+            justify-content: space-between;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+        
+        .empty-state .icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        
+        @media (max-width: 1024px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid #e9ecef;
+            }
+            
+            .upload-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .analyze-btn {
+                width: 100%;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .analysis-meta {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="container">
+        <div class="header">
+            <h1>{{ t('title') }}</h1>
+            <p>{{ t('subtitle') }}</p>
+        </div>
+        
+        <div class="main-content">
+            <!-- 侧边栏 -->
+            <div class="sidebar">
+                <div class="file-info" v-if="file">
+                    <h3>文件信息</h3>
+                    <ul class="file-details">
+                        <li>
+                            <span class="label">文件名</span>
+                            <span class="value">{{ file.name }}</span>
+                        </li>
+                        <li>
+                            <span class="label">文件大小</span>
+                            <span class="value">{{ formatFileSize(file.size) }}</span>
+                        </li>
+                        <li>
+                            <span class="label">类型</span>
+                            <span class="value">{{ getFileType(file.name) }}</span>
+                        </li>
+                        <li>
+                            <span class="label">分析语言</span>
+                            <span class="value">{{ languageText }}</span>
+                        </li>
+                        <li v-if="aiResult">
+                            <span class="label">分析时间</span>
+                            <span class="value">{{ currentTime }}</span>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="quick-actions">
+                    <button class="action-btn" @click="downloadReport" v-if="aiResult">
+                        📥 下载报告
+                    </button>
+                    <button class="action-btn" @click="newAnalysis">
+                        🔄 新分析
+                    </button>
+                    <button class="action-btn primary" @click="showHelp">
+                        ❓ 使用帮助
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 内容区域 -->
+            <div class="content-area">
+                <!-- 上传区域 -->
+                <div class="upload-section">
+                    <h2>{{ t('upload.title') }}</h2>
+                    <p style="margin-bottom: 20px; color: #6c757d;">{{ t('upload.supportedFormats') }}</p>
+                    
+                    <div class="upload-container">
+                        <div class="file-input-container">
+                            <input type="file" id="fileInput" class="file-input" @change="handleFileUpload" accept=".pdf,.docx,.txt">
+                            
+                            <select v-model="language" class="language-select">
+                                <option value="zh">中文合同</option>
+                                <option value="en">English Contract</option>
+                                <option value="es">Español Contrato</option>
+                            </select>
+                        </div>
+                        
+                        <button @click="analyzeContract" :disabled="!file || analyzing" class="analyze-btn">
+                            {{ analyzing ? t('analyzing') : t('analyzeButton') }}
+                        </button>
+                    </div>
+                    
+                    <div v-if="file" class="file-status">
+                        <strong>{{ t('selectedFile') }}:</strong> {{ file.name }}
+                    </div>
+                </div>
+                
+                <!-- 结果区域 -->
+                <div class="result-section">
+                    <h2>{{ t('result.title') }}</h2>
+                    
+                    <div v-if="analyzing" class="loading">
+                        <div class="spinner"></div>
+                        <p>{{ t('analyzingMessage') }}</p>
+                    </div>
+                    
+                    <div v-else-if="aiResult">
+                        <div class="summary">
+                            <h3>{{ summaryTitle }}</h3>
+                            <p>{{ summaryDescription }}</p>
+                            <div class="analysis-meta">
+                                <span>📅 {{ t('analysisTime') }}: {{ currentTime }}</span>
+                                <span>📄 {{ t('file') }}: {{ file.name }}</span>
+                                <span>🌐 {{ t('language') }}: {{ languageText }}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="ai-result" v-html="formatAiResult(aiResult)"></div>
+                    </div>
+                    
+                    <div v-else class="empty-state">
+                        <div class="icon">📋</div>
+                        <h3>{{ t('readyToAnalyze') }}</h3>
+                        <p>{{ t('result.uploadToStart') }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const translations = {
+            zh: {
+                title: "外贸合同智能审核助手",
+                subtitle: "AI-Powered Foreign Trade Contract Review Assistant",
+                upload: {
+                    title: "上传合同文件",
+                    supportedFormats: "支持 PDF、Word 和文本格式文件",
+                    selectFile: "请选择合同文件"
+                },
+                analyzeButton: "开始智能分析",
+                analyzing: "分析中...",
+                selectedFile: "已选择文件",
+                result: {
+                    title: "分析结果",
+                    uploadToStart: "上传合同文件开始分析"
+                },
+                analyzingMessage: "AI正在深度分析合同内容，请稍候...",
+                analysisTime: "分析时间",
+                file: "文件",
+                language: "语言",
+                readyToAnalyze: "准备分析",
+                summaryTitle: "📊 分析报告摘要",
+                summaryDescription: "AI 已完成合同深度分析，发现关键风险点并提供专业建议",
+                totalRisks: "总风险数",
+                highRisk: "高风险",
+                mediumRisk: "中风险",
+                lowRisk: "低风险",
+                riskDescription: "风险描述",
+                legalBasis: "法律依据",
+                improvementSuggestions: "改进建议",
+                风险点: "风险点"
+            },
+            en: {
+                title: "Foreign Trade Contract Review Assistant",
+                subtitle: "AI-Powered Foreign Trade Contract Review Assistant",
+                upload: {
+                    title: "Upload Contract File",
+                    supportedFormats: "Supports PDF, Word and text format files",
+                    selectFile: "Please select a contract file"
+                },
+                analyzeButton: "Start Smart Analysis",
+                analyzing: "Analyzing...",
+                selectedFile: "Selected file",
+                result: {
+                    title: "Analysis Results",
+                    uploadToStart: "Upload contract file to start analysis"
+                },
+                analyzingMessage: "AI is deeply analyzing the contract content, please wait...",
+                analysisTime: "Analysis time",
+                file: "File",
+                language: "Language",
+                readyToAnalyze: "Ready to analyze",
+                summaryTitle: "📊 Analysis Report Summary",
+                summaryDescription: "AI has completed in-depth contract analysis, identified key risk points and provided professional advice",
+                totalRisks: "Total Risks",
+                highRisk: "High Risk",
+                mediumRisk: "Medium Risk",
+                lowRisk: "Low Risk",
+                riskDescription: "Risk Description",
+                legalBasis: "Legal Basis",
+                improvementSuggestions: "Improvement Suggestions",
+                风险点: "Risk Point"
+            },
+            es: {
+                title: "Asistente de Revisión de Contratos de Comercio Exterior",
+                subtitle: "Asistente de Revisión de Contratos de Comercio Exterior con IA",
+                upload: {
+                    title: "Subir Archivo de Contrato",
+                    supportedFormats: "Admite archivos en formato PDF, Word y texto",
+                    selectFile: "Por favor seleccione un archivo de contrato"
+                },
+                analyzeButton: "Iniciar Análisis Inteligente",
+                analyzing: "Analizando...",
+                selectedFile: "Archivo seleccionado",
+                result: {
+                    title: "Resultados del Análisis",
+                    uploadToStart: "Suba un archivo de contrato para comenzar el análisis"
+                },
+                analyzingMessage: "La IA está analizando profundamente el contenido del contrato, por favor espere...",
+                analysisTime: "Tiempo de análisis",
+                file: "Archivo",
+                language: "Idioma",
+                readyToAnalyze: "Listo para analizar",
+                summaryTitle: "📊 Resumen del Informe de Análisis",
+                summaryDescription: "La IA ha completado el análisis profundo del contrato, identificó puntos de riesgo clave y proporcionó asesoramiento profesional",
+                totalRisks: "Riesgos Totales",
+                highRisk: "Alto Riesgo",
+                mediumRisk: "Riesgo Medio",
+                lowRisk: "Bajo Riesgo",
+                riskDescription: "Descripción del Riesgo",
+                legalBasis: "Base Legal",
+                improvementSuggestions: "Sugerencias de Mejora",
+                风险点: "Punto de Riesgo"
+            }
+        };
+
+        new Vue({
+            el: '#app',
+            data: {
+                file: null,
+                language: 'zh',
+                analyzing: false,
+                aiResult: null,
+                currentTime: new Date().toLocaleString('zh-CN')
+            },
+            computed: {
+                languageText() {
+                    const languages = {
+                        'zh': '中文',
+                        'en': 'English', 
+                        'es': 'Español'
+                    };
+                    return languages[this.language] || this.language;
+                },
+                summaryTitle() {
+                    return this.t('summaryTitle');
+                },
+                summaryDescription() {
+                    return this.t('summaryDescription');
+                }
+            },
+            methods: {
+                t(key, params = {}) {
+                    const keys = key.split('.');
+                    let value = translations[this.language];
+                    
+                    for (const k of keys) {
+                        if (value && value[k]) {
+                            value = value[k];
+                        } else {
+                            // 如果当前语言没有找到，回退到中文
+                            value = translations.zh;
+                            for (const k2 of keys) {
+                                value = value[k2];
+                            }
+                            break;
+                        }
+                    }
+                    
+                    if (typeof value === 'string') {
+                        return value.replace(/{(\w+)}/g, (match, key) => {
+                            return params[key] !== undefined ? params[key] : match;
+                        });
+                    }
+                    
+                    return value || key;
+                },
+                
+                formatFileSize(bytes) {
+                    if (bytes === 0) return '0 Bytes';
+                    const k = 1024;
+                    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                    const i = Math.floor(Math.log(bytes) / Math.log(k));
+                    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+                },
+                
+                getFileType(filename) {
+                    const ext = filename.split('.').pop().toLowerCase();
+                    return ext === 'pdf' ? 'PDF 文档' : 
+                           ext === 'docx' ? 'Word 文档' : 
+                           ext === 'txt' ? '文本文件' :
+                           '未知格式';
+                },
+                
+                // 文件读取方法
+                async readFileAsText(file) {
+                    return new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => resolve(e.target.result);
+                        reader.onerror = () => reject(new Error('文件读取失败'));
+                        reader.readAsText(file);
+                    });
+                },
+                
+                downloadReport() {
+                    alert('下载报告功能将在后续版本中实现');
+                },
+                
+                newAnalysis() {
+                    this.file = null;
+                    this.aiResult = null;
+                    document.getElementById('fileInput').value = '';
+                },
+                
+                showHelp() {
+                    alert('使用帮助：\n1. 上传 PDF、Word 或文本格式的合同文件\n2. 选择合同语言\n3. 点击"开始智能分析"按钮\n4. 查看 AI 分析结果\n\n注意：请确保API密钥有效');
+                },
+                
+                handleFileUpload(event) {
+                    this.file = event.target.files[0];
+                    this.aiResult = null;
+                    this.currentTime = new Date().toLocaleString('zh-CN');
+                },
+                
+                formatAiResult(text) {
+                    if (!text) return '<div class="empty-state"><div class="icon">📝</div><p>暂无分析结果</p></div>';
+                    
+                    console.log('原始AI结果:', text);
+                    
+                    // 彻底清理文本
+                    let cleanedText = this.cleanText(text);
+                    console.log('清理后文本:', cleanedText);
+                    
+                    // 特殊处理：如果文本包含"以下是针对您提供的合同文本"
+                    if (cleanedText.includes('以下是针对您提供的合同文本')) {
+                        return this.formatSpecialCase(cleanedText);
+                    }
+                    
+                    // 尝试提取关键信息
+                    const risks = this.extractRisks(cleanedText);
+                    console.log('提取到的风险:', risks);
+                    
+                    if (risks.length === 0) {
+                        // 如果没有提取到结构化风险，尝试另一种解析方式
+                        const structuredRisks = this.extractStructuredRisksNew(cleanedText);
+                        if (structuredRisks.length > 0) {
+                            return this.formatStructuredRisks(structuredRisks);
+                        }
+                        
+                        // 显示清理后的简洁版本
+                        return this.formatSimpleText(cleanedText);
+                    }
+                    
+                    return this.formatStructuredRisks(risks);
+                },
+                
+                // 处理特殊格式的文本（你遇到的格式）
+                formatSpecialCase(text) {
+                    console.log('处理特殊格式文本');
+                    
+                    const lines = text.split('\n').filter(line => line.trim().length > 0);
+                    const risks = [];
+                    let currentRisk = null;
+                    
+                    for (let i = 0; i < lines.length; i++) {
+                        const line = lines[i].trim();
+                        
+                        // 检测风险点开始（中文格式如：1) 风险描述：a. 合同主体信息缺失或模糊）
+                        if (line.match(/^\d+\)/)) {
+                            if (currentRisk) risks.push(currentRisk);
+                            
+                            currentRisk = {
+                                title: this.extractRiskTitle(line),
+                                points: [],
+                                legalBasis: [],
+                                suggestions: [],
+                                level: 'medium'
+                            };
+                        }
+                        // 检测"风险描述"行
+                        else if (line.includes('风险描述') && currentRisk) {
+                            // 尝试获取下一行作为风险描述
+                            if (lines[i + 1] && !lines[i + 1].includes('法律依据')) {
+                                let description = lines[i + 1].replace(/^[:：]?\s*/, '').trim();
+                                if (description && !description.match(/^\d+\)/)) {
+                                    currentRisk.points.push(description);
+                                    i++; // 跳过已处理的行
+                                }
+                            }
+                        }
+                        // 检测"法律依据"行
+                        else if (line.includes('法律依据') && currentRisk) {
+                            // 尝试获取下一行作为法律依据
+                            if (lines[i + 1] && !lines[i + 1].includes('改进建议')) {
+                                let basis = lines[i + 1].replace(/^[:：]?\s*/, '').trim();
+                                if (basis && !basis.match(/^\d+\)/)) {
+                                    currentRisk.legalBasis.push(basis);
+                                    i++; // 跳过已处理的行
+                                }
+                            }
+                        }
+                        // 检测"改进建议"行
+                        else if (line.includes('改进建议') && currentRisk) {
+                            // 尝试获取下一行作为改进建议
+                            if (lines[i + 1] && !lines[i + 1].match(/^\d+\)/)) {
+                                let suggestion = lines[i + 1].replace(/^[:：]?\s*/, '').trim();
+                                if (suggestion) {
+                                    currentRisk.suggestions.push(suggestion);
+                                    i++; // 跳过已处理的行
+                                }
+                            }
+                        }
+                        // 收集其他描述性内容
+                        else if (currentRisk && line.length > 10 && 
+                                !line.includes('以下是针对') &&
+                                !line.includes('合同文本') &&
+                                !line.includes('可识别的片段') &&
+                                !line.match(/^\d+\)/) &&
+                                !line.includes('风险描述') &&
+                                !line.includes('法律依据') &&
+                                !line.includes('改进建议')) {
+                            
+                            // 清理行内容
+                            let cleanLine = line
+                                .replace(/^a\.\s*/, '')
+                                .replace(/^b\.\s*/, '')
+                                .replace(/^c\.\s*/, '')
+                                .replace(/^[一二三四五六七八九十]、/, '')
+                                .trim();
+                            
+                            if (cleanLine.length > 5) {
+                                currentRisk.points.push(cleanLine);
+                            }
+                        }
+                    }
+                    
+                    if (currentRisk) risks.push(currentRisk);
+                    
+                    console.log('特殊格式提取的风险:', risks);
+                    
+                    if (risks.length > 0) {
+                        return this.formatStructuredRisks(risks);
+                    }
+                    
+                    // 如果还是没提取到，显示原始清理文本
+                    return this.formatSimpleText(text);
+                },
+                
+                // 另一种风险提取方法
+                extractStructuredRisksNew(text) {
+                    const risks = [];
+                    const sections = text.split(/\n\s*\n/);
+                    
+                    for (let section of sections) {
+                        if (!section.trim()) continue;
+                        
+                        const lines = section.split('\n').map(line => line.trim()).filter(line => line);
+                        
+                        // 检查是否是结构化段落
+                        let hasRiskDescription = false;
+                        let hasLegalBasis = false;
+                        let hasSuggestion = false;
+                        
+                        for (let line of lines) {
+                            if (line.includes('风险描述')) hasRiskDescription = true;
+                            if (line.includes('法律依据')) hasLegalBasis = true;
+                            if (line.includes('改进建议')) hasSuggestion = true;
+                        }
+                        
+                        if (hasRiskDescription || hasLegalBasis || hasSuggestion) {
+                            let risk = {
+                                title: this.extractRiskTitle(lines[0]),
+                                points: [],
+                                legalBasis: [],
+                                suggestions: [],
+                                level: 'medium'
+                            };
+                            
+                            // 解析每一行
+                            let currentSection = null;
+                            for (let i = 0; i < lines.length; i++) {
+                                const line = lines[i];
+                                
+                                if (line.includes('风险描述')) {
+                                    currentSection = 'risk';
+                                    let nextLine = i + 1 < lines.length ? lines[i + 1] : '';
+                                    if (nextLine && !nextLine.includes('法律依据') && !nextLine.includes('改进建议')) {
+                                        risk.points.push(nextLine);
+                                    }
+                                } else if (line.includes('法律依据')) {
+                                    currentSection = 'legal';
+                                    let nextLine = i + 1 < lines.length ? lines[i + 1] : '';
+                                    if (nextLine && !nextLine.includes('改进建议')) {
+                                        risk.legalBasis.push(nextLine);
+                                    }
+                                } else if (line.includes('改进建议')) {
+                                    currentSection = 'suggestion';
+                                    let nextLine = i + 1 < lines.length ? lines[i + 1] : '';
+                                    if (nextLine) {
+                                        risk.suggestions.push(nextLine);
+                                    }
+                                } else if (currentSection && line.length > 5) {
+                                    // 清理内容
+                                    let cleanLine = line.replace(/^[:：]\s*/, '').trim();
+                                    if (cleanLine) {
+                                        if (currentSection === 'risk') risk.points.push(cleanLine);
+                                        else if (currentSection === 'legal') risk.legalBasis.push(cleanLine);
+                                        else if (currentSection === 'suggestion') risk.suggestions.push(cleanLine);
+                                    }
+                                }
+                            }
+                            
+                            risks.push(risk);
+                        }
+                    }
+                    
+                    return risks;
+                },
+                
+                // 从第一行提取风险标题
+                extractRiskTitle(line) {
+                    if (!line) return '未命名风险点';
+                    
+                    // 清理各种前缀
+                    let title = line
+                        .replace(/^\d+\.\s*/, '')
+                        .replace(/^[一二三四五六七八九十]、\s*/, '')
+                        .replace(/^风险点\s*[:：]\s*/, '')
+                        .replace(/^\d+\)\s*/, '')
+                        .replace(/^a\.\s*/, '')
+                        .replace(/^b\.\s*/, '')
+                        .replace(/^c\.\s*/, '')
+                        .trim();
+                    
+                    // 如果标题仍然包含冒号，取冒号前的内容
+                    if (title.includes('：')) {
+                        title = title.split('：')[0];
+                    } else if (title.includes(':')) {
+                        title = title.split(':')[0];
+                    }
+                    
+                    return title || '未命名风险点';
+                },
+                
+                cleanText(text) {
+                    // 删除所有特殊符号
+                    let cleaned = text.replace(/\*\*/g, '');
+                    cleaned = cleaned.replace(/#/g, '');
+                    cleaned = cleaned.replace(/-/g, '');
+                    
+                    // 删除开头的律师自我介绍段落
+                    cleaned = cleaned.replace(/^作为[^，。]*律师[^。]*。[^。]*。/g, '');
+                    cleaned = cleaned.replace(/^作为[^，。]*律师[^，]*，[^。]*。/g, '');
+                    cleaned = cleaned.replace(/^我将从[^。]*进行分析[^。]*。/g, '');
+                    cleaned = cleaned.replace(/^虽然[^，]*，[^，]*，但[^。]*。/g, '');
+                    
+                    // 删除特定的开头段落
+                    const unwantedStarts = [
+                        /^以下是针对您提供的合同文本[^。]*。/,
+                        /^由于合同文本存在[^。]*。/,
+                        /^以下分析基于[^。]*。/,
+                        /^根据可识别的片段[^。]*。/,
+                        /^合同文本存在乱码[^。]*。/,
+                        /^尽管内容不完整[^。]*。/
+                    ];
+                    
+                    unwantedStarts.forEach(pattern => {
+                        cleaned = cleaned.replace(pattern, '');
+                    });
+                    
+                    // 删除开头的空行和空格
+                    cleaned = cleaned.replace(/^\s+/, '');
+                    
+                    // 删除孤立的星号行
+                    cleaned = cleaned.replace(/^\*+\s*$/gm, '');
+                    
+                    // 删除开头的数字和星号组合
+                    cleaned = cleaned.replace(/^[\d\s\*]+\n/gm, '');
+                    
+                    // 删除空行
+                    cleaned = cleaned.replace(/\n\s*\n\s*\n/g, '\n\n');
+                    
+                    return cleaned.trim();
+                },
+                
+                extractRisks(text) {
+                    const risks = [];
+                    const lines = text.split('\n');
+                    let currentRisk = null;
+                    
+                    for (let i = 0; i < lines.length; i++) {
+                        const line = lines[i].trim();
+                        
+                        if (!line) continue;
+                        
+                        // 检测风险点开始
+                        const riskPatterns = {
+                            zh: ['风险点', '风险：', '一、', '二、', '三、'],
+                            en: ['Risk', 'risk', '1.', '2.', '3.', 'Issue', 'issue'],
+                            es: ['Riesgo', 'riesgo', '1.', '2.', '3.', 'Problema', 'problema']
+                        };
+                        
+                        const patterns = riskPatterns[this.language] || riskPatterns.zh;
+                        const isRiskStart = patterns.some(pattern => line.includes(pattern)) ||
+                                           (line.match(/^\d+\./) && (line.includes('风险') || line.includes('Risk') || line.includes('Riesgo')));
+                        
+                        if (isRiskStart) {
+                            if (currentRisk) risks.push(currentRisk);
+                            currentRisk = {
+                                title: this.cleanRiskTitle(line),
+                                points: [],
+                                legalBasis: [],
+                                suggestions: [],
+                                level: this.detectRiskLevel(line)
+                            };
+                        }
+                        // 检测法律依据
+                        else if (this.isLegalBasis(line) && currentRisk) {
+                            currentRisk.legalBasis.push(this.cleanLegalBasis(line));
+                        }
+                        // 检测改进建议
+                        else if (this.isSuggestion(line) && currentRisk) {
+                            currentRisk.suggestions.push(this.cleanSuggestion(line));
+                        }
+                        // 收集其他内容
+                        else if (currentRisk && line.length > 5 && 
+                                !this.isSectionHeader(line)) {
+                            currentRisk.points.push(line);
+                        }
+                    }
+                    
+                    if (currentRisk) risks.push(currentRisk);
+                    return risks;
+                },
+                
+                cleanRiskTitle(line) {
+                    const patterns = {
+                        zh: [/风险点[:：]?\s*/, /^\d+\.\s*/, /^[一二三四五六七八九十]、\s*/],
+                        en: [/Risk[:]?\s*/i, /^\d+\.\s*/, /Issue[:]?\s*/i],
+                        es: [/Riesgo[:]?\s*/i, /^\d+\.\s*/, /Problema[:]?\s*/i]
+                    };
+                    
+                    const langPatterns = patterns[this.language] || patterns.zh;
+                    let cleaned = line;
+                    langPatterns.forEach(pattern => {
+                        cleaned = cleaned.replace(pattern, '');
+                    });
+                    
+                    return cleaned.trim();
+                },
+                
+                isLegalBasis(line) {
+                    const keywords = {
+                        zh: ['法律依据', '依据：', '《'],
+                        en: ['Legal', 'legal', 'Basis', 'basis', 'Law', 'law'],
+                        es: ['Base', 'base', 'Legal', 'legal', 'Ley', 'ley']
+                    };
+                    const langKeywords = keywords[this.language] || keywords.zh;
+                    return langKeywords.some(keyword => line.includes(keyword));
+                },
+                
+                cleanLegalBasis(line) {
+                    const patterns = {
+                        zh: [/(法律依据|依据)[:：]?\s*/],
+                        en: [/(Legal Basis|Basis)[: ]?\s*/i],
+                        es: [/(Base Legal|Base)[: ]?\s*/i]
+                    };
+                    
+                    const langPatterns = patterns[this.language] || patterns.zh;
+                    let cleaned = line;
+                    langPatterns.forEach(pattern => {
+                        cleaned = cleaned.replace(pattern, '');
+                    });
+                    
+                    return cleaned.trim();
+                },
+                
+                isSuggestion(line) {
+                    const keywords = {
+                        zh: ['改进建议', '建议：', '应'],
+                        en: ['Suggestion', 'suggestion', 'Recommend', 'recommend', 'Should', 'should'],
+                        es: ['Sugerencia', 'sugerencia', 'Recomendación', 'recomendación', 'Debe', 'debe']
+                    };
+                    const langKeywords = keywords[this.language] || keywords.zh;
+                    return langKeywords.some(keyword => line.includes(keyword));
+                },
+                
+                cleanSuggestion(line) {
+                    const patterns = {
+                        zh: [/(改进建议|建议)[:：]?\s*/],
+                        en: [/(Suggestion|Recommendation)[: ]?\s*/i],
+                        es: [/(Sugerencia|Recomendación)[: ]?\s*/i]
+                    };
+                    
+                    const langPatterns = patterns[this.language] || patterns.zh;
+                    let cleaned = line;
+                    langPatterns.forEach(pattern => {
+                        cleaned = cleaned.replace(pattern, '');
+                    });
+                    
+                    return cleaned.trim();
+                },
+                
+                isSectionHeader(line) {
+                    return line.match(/^[一二三四五六七八九十]、/) || 
+                           line.match(/^\d+\\./) ||
+                           line.includes('---');
+                },
+                
+                detectRiskLevel(line) {
+                    const levels = {
+                        zh: { high: '高风险', medium: '中风险', low: '低风险' },
+                        en: { high: 'High risk', medium: 'Medium risk', low: 'Low risk' },
+                        es: { high: 'Alto riesgo', medium: 'Riesgo medio', low: 'Bajo riesgo' }
+                    };
+                    
+                    const langLevels = levels[this.language] || levels.zh;
+                    
+                    for (const [level, keywords] of Object.entries(langLevels)) {
+                        if (line.includes(keywords)) return level;
+                    }
+                    
+                    return 'medium';
+                },
+                
+                formatStructuredRisks(risks) {
+                    // 过滤掉空的或无效的风险
+                    const validRisks = risks.filter(risk => {
+                        return risk && 
+                               (risk.title || 
+                                risk.points.length > 0 || 
+                                risk.legalBasis.length > 0 || 
+                                risk.suggestions.length > 0);
+                    });
+                    
+                    if (validRisks.length === 0) {
+                        return '<div class="empty-state"><div class="icon">📝</div><p>未提取到有效的风险信息</p></div>';
+                    }
+                    
+                    let html = '';
+                    
+                    // 统计信息
+                    const stats = {
+                        high: validRisks.filter(r => r.level === 'high').length,
+                        medium: validRisks.filter(r => r.level === 'medium').length,
+                        low: validRisks.filter(r => r.level === 'low').length,
+                        total: validRisks.length
+                    };
+                    
+                    html += `
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-number">${stats.total}</div>
+                                <div class="stat-label">${this.t('totalRisks')}</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number" style="color: #e74c3c;">${stats.high}</div>
+                                <div class="stat-label">${this.t('highRisk')}</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number" style="color: #f39c12;">${stats.medium}</div>
+                                <div class="stat-label">${this.t('mediumRisk')}</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number" style="color: #27ae60;">${stats.low}</div>
+                                <div class="stat-label">${this.t('lowRisk')}</div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // 风险卡片
+                    validRisks.forEach((risk, index) => {
+                        const levelClass = risk.level || 'medium';
+                        const levelIcon = { high: '⚠️', medium: '🔶', low: '✅' }[levelClass] || '🔶';
+                        
+                        // 清理标题
+                        let cleanTitle = risk.title || `${this.t('风险点')} ${index + 1}`;
+                        cleanTitle = cleanTitle.replace(/[#-]/g, '').trim();
+                        
+                        html += `
+                            <div class="risk-card ${levelClass}">
+                                <div class="risk-header">
+                                    <div class="risk-icon ${levelClass}">${levelIcon}</div>
+                                    <h3 class="risk-title">${cleanTitle}</h3>
+                                </div>
+                                <div class="risk-content">
+                        `;
+                        
+                        // 风险描述
+                        const meaningfulPoints = risk.points.filter(point => 
+                            point && point.length > 5
+                        );
+                        
+                        if (meaningfulPoints.length > 0) {
+                            let cleanPoint = meaningfulPoints[0].replace(/[#-]/g, '').trim();
+                            html += `<div class="risk-point"><strong>${this.t('riskDescription')}：</strong> ${cleanPoint}</div>`;
+                        }
+                        
+                        // 法律依据
+                        if (risk.legalBasis.length > 0 && risk.legalBasis[0]) {
+                            let cleanLegal = risk.legalBasis[0].replace(/[#-]/g, '').trim();
+                            html += `<div class="legal-basis"><strong>${this.t('legalBasis')}：</strong> ${cleanLegal}</div>`;
+                        }
+                        
+                        // 改进建议
+                        if (risk.suggestions.length > 0 && risk.suggestions[0]) {
+                            let cleanSuggestion = risk.suggestions[0].replace(/[#-]/g, '').trim();
+                            html += `<div class="suggestion"><strong>${this.t('improvementSuggestions')}：</strong> ${cleanSuggestion}</div>`;
+                        }
+                        
+                        html += `</div></div>`;
+                    });
+                    
+                    return html;
+                },
+                
+                formatSimpleText(text) {
+                    // 清理文本中的特殊符号
+                    const cleanText = text
+                        .replace(/[#-]/g, '')
+                        .replace(/\*\*/g, '')
+                        .trim();
+                    
+                    // 提取有意义的段落
+                    const paragraphs = cleanText.split(/\n\s*\n/)
+                        .filter(p => p.trim().length > 20)
+                        .slice(0, 5);
+                    
+                    if (paragraphs.length === 0) {
+                        // 如果没有段落，尝试提取行
+                        const lines = cleanText.split('\n')
+                            .filter(line => line.trim().length > 10)
+                            .slice(0, 6);
+                        
+                        if (lines.length === 0) {
+                            return '<div class="empty-state"><div class="icon">📝</div><p>分析内容格式无法识别</p></div>';
+                        }
+                        
+                        return lines.map(line => `
+                            <div class="risk-card">
+                                <div class="risk-content">
+                                    <p>${line.trim()}</p>
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+                    
+                    return paragraphs.map((para, index) => `
+                        <div class="risk-card">
+                            <div class="risk-content">
+                                <h4>要点 ${index + 1}</h4>
+                                <p>${para.trim()}</p>
+                            </div>
+                        </div>
+                    `).join('');
+                },
+                
+                async analyzeContract() {
+                    if (!this.file) {
+                        alert(this.t('upload.selectFile'));
+                        return;
+                    }
+                    
+                    this.analyzing = true;
+                    this.aiResult = null;
+                    this.currentTime = new Date().toLocaleString('zh-CN');
+                    
+                    try {
+                        // 1. 读取文件内容
+                        const fileContent = await this.readFileAsText(this.file);
+                        
+                        // 2. 提取文本内容（限制长度）
+                        const textContent = fileContent.substring(0, 2000);
+                        
+                        console.log('调用通义千问API...');
+                        
+                        // 3. 使用你的API密钥
+                        const API_KEY = "sk-81dd44c8f7104ba6aa1146a5104d3139";
+                        
+                        // 4. 构建提示词
+                        let prompt;
+                        if (this.language === 'en') {
+                            prompt = `As a professional trade lawyer, analyze this contract for risks and provide improvement suggestions. Format response in clear sections with: 1) Risk Points, 2) Legal Basis, 3) Suggestions.\n\nContract text:\n${textContent}`;
+                        } else if (this.language === 'es') {
+                            prompt = `Como abogado profesional de comercio exterior, analice este contrato para identificar riesgos y proporcionar sugerencias de mejora. Formatee la respuesta en secciones claras con: 1) Puntos de Riesgo, 2) Base Legal, 3) Sugerencias.\n\nTexto del contrato:\n${textContent}`;
+                        } else {
+                            prompt = `作为专业外贸律师，请分析以下合同的风险点和改进建议。请按以下结构回复：1) 风险点，2) 法律依据，3) 改进建议。\n\n合同文本：\n${textContent}`;
+                        }
+                        
+                        // 5. 使用正确的API端点
+                        const response = await axios.post(
+                            'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+                            {
+                                model: "qwen-turbo",
+                                messages: [{
+                                    role: "user",
+                                    content: prompt
+                                }],
+                                max_tokens: 1500,
+                                temperature: 0.1
+                            },
+                            {
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    "Authorization": `Bearer ${API_KEY}`,
+                                    "X-DashScope-SSE": "disable"  // 禁用SSE
+                                },
+                                timeout: 30000
+                            }
+                        );
+                        
+                        console.log('API响应:', response.data);
+                        
+                        let aiContent = '';
+                        const result = response.data;
+                        
+                        if (result.choices && result.choices[0]) {
+                            aiContent = result.choices[0].message?.content || '';
+                        }
+                        
+                        if (!aiContent) {
+                            aiContent = "AI分析完成，但返回内容为空。";
+                        }
+                        
+                        this.aiResult = aiContent;
+                        
+                    } catch (error) {
+                        console.error('分析失败详情:', error);
+                        
+                        let errorMessage = '';
+                        
+                        if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+                            errorMessage = this.language === 'zh' ? '请求超时，请稍后重试' : 
+                                        this.language === 'en' ? 'Request timeout, please try again later' :
+                                        'Tiempo de espera agotado, intente más tarde';
+                        } else if (error.response) {
+                            console.error('错误响应:', error.response.data);
+                            
+                            if (error.response.status === 401 || error.response.status === 403) {
+                                errorMessage = this.language === 'zh' ? 'API密钥无效或已过期' : 
+                                            this.language === 'en' ? 'API key invalid or expired' :
+                                            'Clave de API inválida o expirada';
+                            } else if (error.response.status === 404) {
+                                errorMessage = this.language === 'zh' ? 'API端点不存在，请联系技术支持' : 
+                                            this.language === 'en' ? 'API endpoint not found, contact support' :
+                                            'Endpoint de API no encontrado, contacte soporte';
+                            } else if (error.response.status === 429) {
+                                errorMessage = this.language === 'zh' ? '请求过于频繁，请稍后重试' : 
+                                            this.language === 'en' ? 'Too many requests, please try again later' :
+                                            'Demasiadas solicitudes, intente más tarde';
+                            } else {
+                                errorMessage = this.language === 'zh' ? `服务器错误 (${error.response.status}): ${error.response.data?.message || ''}` : 
+                                            this.language === 'en' ? `Server error (${error.response.status}): ${error.response.data?.message || ''}` :
+                                            `Error del servidor (${error.response.status}): ${error.response.data?.message || ''}`;
+                            }
+                        } else if (error.message.includes('Network Error')) {
+                            errorMessage = this.language === 'zh' ? '网络连接错误，请检查网络' : 
+                                        this.language === 'en' ? 'Network connection error, please check network' :
+                                        'Error de conexión de red, verifique la red';
+                        } else {
+                            errorMessage = this.language === 'zh' ? `分析失败: ${error.message}` : 
+                                        this.language === 'en' ? `Analysis failed: ${error.message}` :
+                                        `Análisis fallido: ${error.message}`;
+                        }
+                        
+                        alert(errorMessage);
+                        
+                        // 使用模拟数据作为后备
+                        const mockResult = this.language === 'zh' 
+                            ? `📊 合同分析报告（演示模式）\n\n分析时间：${new Date().toLocaleString('zh-CN')}\n\n🔄 实际API调用失败，以下是示例分析：\n\n1) 风险描述：a. 合同主体信息缺失或模糊\n   法律依据：2)\n   改进建议：3)`
+                            : `📊 Contract Analysis (Demo Mode)\n\nTime: ${new Date().toLocaleString()}\n\n🔄 Actual API call failed, here is sample analysis:\n\n1) Risk Description: a. Missing or ambiguous contract party information\n   Legal Basis: 2)\n   Suggestion: 3)`;
+                        
+                        this.aiResult = mockResult;
+                    } finally {
+                        this.analyzing = false;
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
